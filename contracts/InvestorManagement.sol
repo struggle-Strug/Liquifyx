@@ -2,8 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/IPaymentProcess.sol";
 
-contract InvestorManagement is Ownable{
+contract InvestorManagement is Ownable,ReentrancyGuard{
     //struct investor details
     struct InvestorDetail {
         address walletAddress;
@@ -14,6 +16,12 @@ contract InvestorManagement is Ownable{
         uint256 totalInvestments;
     }
 
+    //address of the agent
+    address public agent;
+
+    //PaymentProcess contract
+    IPaymentProcess public paymentProcess;
+
     //mapping for all investors
     mapping(address => InvestorDetail) public investors;
     //mapping to check wonder the investor is registered
@@ -22,9 +30,23 @@ contract InvestorManagement is Ownable{
     event InvestorRegistered(address indexed investor, string name);
     event KycStatusUpdated(address indexed investor, bool status);
     event AmlStatusUpdated(address indexed investor, bool status);
-    event InvestorInteraction(address indexed investor, uint256 timestamp);
+    event InvestorInteraction(address indexed investor,string interactionType, uint256 timestamp);
+    event makeInvest(address indexed investor, uint amount);
+    event requestWithdrawn(address indexed investor, uint agreementId);
 
-    constructor() Ownable(msg.sender){
+    //modifier
+    modifier onlyKYCApprover(){
+        require(investors[msg.sender].KYCApproved, "The investor is not approved By KYC");
+        _;
+    }
+    modifier onlyAMLApprover(){
+        require(investors[msg.sender].AMLApproved, "The investor is not approved By AML");
+        _;
+    }
+
+    constructor(address _paymentProcessAddress, address _agent) Ownable(msg.sender){
+        paymentProcess = IPaymentProcess(_paymentProcessAddress);
+        agent = _agent;
     }
 
     ///@notice function to create initial investor details
@@ -47,11 +69,25 @@ contract InvestorManagement is Ownable{
         emit InvestorRegistered(msg.sender, _name);
     }
 
+    ///@notice Function to investor only KYC,AML Approver
+    function invest() external payable nonReentrant onlyAMLApprover onlyKYCApprover {
+        paymentProcess.makeInvestment(msg.sender, agent);
+
+        emit makeInvest(msg.sender, msg.value);
+    }
+
+    ///@notice Function to request withdraw
+    function requestWithdraw(uint256 _agreementId) external onlyAMLApprover onlyKYCApprover {
+        paymentProcess.requestWithdraw(_agreementId);
+
+        emit requestWithdrawn(msg.sender, _agreementId);
+    }
+
     ///@notice Function to track the interaction with platform
-    function recordInteraction() external {
+    function recordInteraction(string calldata _interactionType) external {
         require(investorRegistered[msg.sender], "Investor not registered");
         investors[msg.sender].lastInteractionTimestamp = block.timestamp;
-        emit InvestorInteraction(msg.sender, block.timestamp);
+        emit InvestorInteraction(msg.sender, _interactionType, block.timestamp);
     }
 
     ///@notice Function to update KYC status
@@ -75,5 +111,11 @@ contract InvestorManagement is Ownable{
         investorDetail.AMLApproved = _status;
 
         emit AmlStatusUpdated(_walletAddress, _status);
+    }
+
+    ///@notice Function to upadte the address of the agent
+    ///@param _newAddress the new address of the agent
+    function updateAgentAddress(address _newAddress) external onlyOwner{
+        agent = _newAddress;
     }
 }

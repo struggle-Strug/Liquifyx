@@ -135,7 +135,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
         totalInvestedAmount[buyer] -= amount;
         investorInvestment[buyer][_agreementId].canceled = true;
 
-        tokenDistribute.withdraw(buyer, _agreementId);
+        tokenDistribute.withdraw(buyer, agent, _agreementId);
         emit InvestmentWithdrawn(buyer, _agreementId, amount);
     }
 
