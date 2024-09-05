@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-
 interface IPaymentProcess {
     //struct Investment Details
     struct Investment {
-        uint256 agreementId;
-        uint256 amount;
-        uint256 timestamp;
-        bool isCompleted;
+        uint256 amount;       // Amount invested
+        uint256 timestamp;    // Time of investment
+        bool isCreated;     // Whether the investment has been created
+        bool canceled;        // Whether the investment has been canceled
     }
     //Function to createAgreemtn
     function makeInvestment(address _seller, address _agent) external payable;
