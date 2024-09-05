@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TokenDistribute is Ownable{
     IPaymentProcess public paymentProcess;
     IERC20 public token;
-    address agent;
     address owner;
     uint256 tokenPerEther;
 
@@ -20,10 +19,9 @@ contract TokenDistribute is Ownable{
     //event for withdraw token
     event TokenWithdrawn(address indexed _investor, uint256 _agreementId, uint256 _tokenAmount);
 
-    constructor(address _paymentProcess, address _token, address _agent, uint256 _tokenPerEther, address _owner) Ownable(_owner){
+    constructor(address _paymentProcess, address _token, uint256 _tokenPerEther, address _owner) Ownable(_owner){
         paymentProcess = IPaymentProcess(_paymentProcess);
         token = IERC20(_token);
-        agent = _agent;
         owner = _owner;
         tokenPerEther = _tokenPerEther;
     }
@@ -47,11 +45,12 @@ contract TokenDistribute is Ownable{
     
     ///@notice Function to withdraw
     ///@param _investor the address of the investor
+    ///@param _agent the address of the agent
     ///@param _agreementId the ID of the agreement
-    function withdraw(address _investor, uint256 _agreementId) external {
+    function withdraw(address _investor,address _agent, uint256 _agreementId) external {
         IPaymentProcess.Investment memory investment = paymentProcess.getInvestmentDetail(_investor, _agreementId);
         require(investment.canceled, "Agreement hasn't canceled yet");
-        require(msg.sender == agent, "Only agent can call this function");
+        require(msg.sender == _agent, "Only agent can call this function");
 
         uint256 withdrawTokenAmount = tokenBalance[_agreementId];
 
@@ -71,11 +70,4 @@ contract TokenDistribute is Ownable{
     function updateTokenAddress(address _newAddress) external onlyOwner {
         token = IERC20(_newAddress);
     }
-
-    ///@notice Function to update agent address
-    ///@param _newAddress the address of the new agent
-    function updateAgentAddress(address _newAddress) external onlyOwner{
-        agent = _newAddress;
-    }
-
 }

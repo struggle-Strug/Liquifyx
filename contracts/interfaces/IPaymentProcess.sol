@@ -17,4 +17,6 @@ interface IPaymentProcess {
     function getInvestmentDetail(address _investor, uint256 _agreementId) external view returns(Investment memory);
     //Function to withdraw
     function withdraw(uint256 _agreementId) external;
+    //Function to request withdraw
+    function requestWithdraw(uint256 _agreementId) external;
 }
