@@ -120,7 +120,7 @@ contract InvestorEscrow is ReentrancyGuard {
     /// @notice Deposit funds into the escrow
     /// @param _agreementId The ID of the agreement
     function deposit(uint256 _agreementId) external payable nonReentrant onlyBuyer(_agreementId) {
-        EscrowAgreement storage agreement = agreements[_agreementId];
+        EscrowAgreement memory agreement = agreements[_agreementId];
         require(agreement.amount == 0, "Deposit already made");
         agreement.amount = msg.value;
         agreement.buyerStatus = BuyerStatus.Deposited;

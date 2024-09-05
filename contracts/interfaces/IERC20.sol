@@ -10,6 +10,4 @@ interface IERC20{
     function getTotalSupply() external view returns (uint256);
     //Function to get the balance of the account
     function getBalanceOf(address account) external view returns (uint256);
-    //Function to transfer tokens to the behalf
-    function transferTokensOnBehalf(address from, address to, uint256 amount) external;
 }
