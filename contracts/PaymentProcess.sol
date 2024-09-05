@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./interfaces/IInvestorEscrow.sol";
+import "./interfaces/ITokenDistribute.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -9,6 +10,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract PaymentProcess is ReentrancyGuard,AccessControl {
     // Reference to the MultiEscrow contract
     IInvestorEscrow public escrowContract;
+    // Reference to the TokenDistribute contract
+    ITokenDistribute public tokenDistribute;
 
     // Struct to represent an individual investment
     struct Investment {
@@ -38,10 +41,11 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     event EscrowContractUpdated(address newEscrowContract);
 
     // Constructor to set the address of the MultiEscrow contract
-    constructor(address _escrowContractAddress){
+    constructor(address _escrowContractAddress, address _tokenDistributeAddress){
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(APPROVER_ROLE, msg.sender);
         escrowContract = IInvestorEscrow(_escrowContractAddress);
+        tokenDistribute = ITokenDistribute(_tokenDistributeAddress);
     }
 
     ///@notice Function to make investment
@@ -68,6 +72,8 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
         investorInvestment[msg.sender][agreementId] = newInvestment;
         investorAgreementIds[msg.sender].push(agreementId);
         totalInvestedAmount[msg.sender] += msg.value;
+
+        tokenDistribute.tokenDistribute(msg.sender, agreementId);
 
         emit InvestmentMade(msg.sender, agreementId, msg.value);
     }

@@ -195,9 +195,9 @@ contract InvestorEscrow is ReentrancyGuard {
         agreement.buyerStatus = BuyerStatus.Refunded;
         agreement.contractStatus = ContractStatus.Refunded;
 
-        emit AgreementCanceled(_agreementId);
-
         paymentProcess.withdraw(_agreementId);
+
+        emit AgreementCanceled(_agreementId);
     }
 
     /// @notice Complete the agreement by the agent
