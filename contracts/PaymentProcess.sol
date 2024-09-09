@@ -41,11 +41,9 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     event EscrowContractUpdated(address newEscrowContract);
 
     // Constructor to set the address of the MultiEscrow contract
-    constructor(address _escrowContractAddress, address _tokenDistributeAddress){
+    constructor(){
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(APPROVER_ROLE, msg.sender);
-        escrowContract = IInvestorEscrow(_escrowContractAddress);
-        tokenDistribute = ITokenDistribute(_tokenDistributeAddress);
     }
 
     ///@notice Function to make investment
@@ -164,5 +162,17 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     // Fallback function to receive Ether
     receive() external payable {
         revert("Direct payments not accepted");
+    }
+
+    ///@notice Function to set the escrowContract Address
+    ///@param _escrowAddress the address of the EscrowAddress
+    function setEscrowAddress(address _escrowAddress) public onlyRole(DEFAULT_ADMIN_ROLE){
+        IInvestorEscrow(_escrowAddress);
+    }
+
+    ///@notice Function to set the tokenDistribute Address
+    ///@param _tokenDistribute the address of the tokenDistribute
+    function setTokenDistribute(address _tokenDistribute) public onlyRole(DEFAULT_ADMIN_ROLE){
+        ITokenDistribute(_tokenDistribute);
     }
 }

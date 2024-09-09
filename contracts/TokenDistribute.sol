@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TokenDistribute is Ownable{
     IPaymentProcess public paymentProcess;
     IERC20 public token;
-    address owner;
     uint256 tokenPerEther;
 
     //mapping to get the tokenbalance of the agreement
@@ -19,10 +18,8 @@ contract TokenDistribute is Ownable{
     //event for withdraw token
     event TokenWithdrawn(address indexed _investor, uint256 _agreementId, uint256 _tokenAmount);
 
-    constructor(address _paymentProcess, address _token, uint256 _tokenPerEther, address _owner) Ownable(_owner){
-        paymentProcess = IPaymentProcess(_paymentProcess);
+    constructor(address _token, uint256 _tokenPerEther, address _owner) Ownable(_owner){
         token = IERC20(_token);
-        owner = _owner;
         tokenPerEther = _tokenPerEther;
     }
 
@@ -69,5 +66,11 @@ contract TokenDistribute is Ownable{
     ///@param _newAddress the newTokenAddress
     function updateTokenAddress(address _newAddress) external onlyOwner {
         token = IERC20(_newAddress);
+    }
+
+    ///@notice Function to set the PaymentProcess Contract Address
+    ///@param _paymentProcess the address of the PaymentProcess
+    function setPaymentProcessAddress(address _paymentProcess) public onlyOwner{
+        IPaymentProcess(_paymentProcess);
     }
 }

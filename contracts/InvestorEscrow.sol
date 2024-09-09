@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IPaymentProcess.sol";
+import "hardhat/console.sol";
 
 /// @title Investor Escrow Contract
 /// @notice This contract holds funds in escrow until certain predefined conditions are met.
-contract InvestorEscrow is ReentrancyGuard {
+contract InvestorEscrow is ReentrancyGuard,Ownable {
     //PaymentProcess contract
     IPaymentProcess public paymentProcess;
 
@@ -85,20 +87,17 @@ contract InvestorEscrow is ReentrancyGuard {
     }
 
     //constructor
-    constructor(address _paymentProcess) {
-        paymentProcess = IPaymentProcess(_paymentProcess);
+    constructor() Ownable(msg.sender) {
     }
 
     /// @notice Create a new escrow agreement
-    /// @param _buyer The address of the buyer
     /// @param _seller The address of the seller
     /// @param _agent The address of the agent
     /// @return The ID of the newly created agreement
-    function createAgreement(address _buyer, address _seller, address _agent) external returns(uint256) {
+    function createAgreement(address _seller, address _agent) external returns(uint256) {
         uint256 agreementId = nextAgreementId++;
-
         agreements[agreementId] = EscrowAgreement({
-            buyer: _buyer,
+            buyer: msg.sender,
             seller: _seller,
             agent: _agent,
             amount: 0,
@@ -113,7 +112,7 @@ contract InvestorEscrow is ReentrancyGuard {
             disputeReason: ""
         });
 
-        emit AgreementCreated(agreementId, _buyer, _seller, _agent);
+        emit AgreementCreated(agreementId, msg.sender, _seller, _agent);
         return agreementId;
     }
 
@@ -126,9 +125,11 @@ contract InvestorEscrow is ReentrancyGuard {
         agreement.buyerStatus = BuyerStatus.Deposited;
         agreement.contractStatus = ContractStatus.Funded;
 
-        payable(agreement.agent).transfer(msg.value);
-
         (bool success,) = agreement.agent.call{value: msg.value}("");
+        console.log("success",success);
+        console.log("amount",agreement.amount);
+        console.log("_agreementId",_agreementId);
+        console.log("Reached here!!!!!!!!!");
         if(!success) revert();
 
         emit Deposited(_agreementId, msg.value);
@@ -324,6 +325,12 @@ contract InvestorEscrow is ReentrancyGuard {
         bool state = approvals[_agreementId][_member];
 
         return state;
+    }
+
+    ///@notice Function to set the PaymentProcess Contract Address
+    ///@param _paymentProcess the address of the PaymentProcess
+    function setPaymentProcessAddress(address _paymentProcess) public onlyOwner{
+        IPaymentProcess(_paymentProcess);
     }
 
     ///@notice receive functon
