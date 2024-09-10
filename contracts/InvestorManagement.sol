@@ -44,8 +44,7 @@ contract InvestorManagement is Ownable,ReentrancyGuard{
         _;
     }
 
-    constructor(address _paymentProcessAddress, address _agent) Ownable(msg.sender){
-        paymentProcess = IPaymentProcess(_paymentProcessAddress);
+    constructor(address _agent) Ownable(msg.sender){
         agent = _agent;
     }
 
@@ -117,5 +116,11 @@ contract InvestorManagement is Ownable,ReentrancyGuard{
     ///@param _newAddress the new address of the agent
     function updateAgentAddress(address _newAddress) external onlyOwner{
         agent = _newAddress;
+    }
+
+    ///@notice Function to set the PaymentProcess Contract Address
+    ///@param _paymentProcess the address of the PaymentProcess
+    function setPaymentProcessAddress(address _paymentProcess) public onlyOwner{
+        IPaymentProcess(_paymentProcess);
     }
 }
