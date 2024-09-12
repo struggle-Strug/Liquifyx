@@ -18,6 +18,7 @@ interface IInvestorEscrow {
         uint8 disputeStatus,
         bool buyerRequestedCancel,
         bool buyerRequestedComplete,
+        bool sellerRequestedComplete,
         uint256 expirationTime,
         string memory disputeReason
     );

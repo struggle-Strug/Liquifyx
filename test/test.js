@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 
-describe("test InvestorEscrow Contract", function() {
+describe("test Contracts", function() {
     let buyer;
     let agent;
     let seller;
@@ -50,17 +50,45 @@ describe("test InvestorEscrow Contract", function() {
         investorManagementAddress = await investorManagement.getAddress();
     })
 
-    describe("Functions Test", function () {
-        it("CreateAgreement and deposit", async function(){
+    describe("InvestorEscrow", function () {
+        it("CreateAgreement,deposit,approve,requestCancel,requestComplete,AgentCancel,AgentComplete,checkAndHandleExpiration,raiseDispute,resolveDispute", async function(){           
+            //------------------createAgreement-------------------------//
             await investorEscrow.connect(buyer).createAgreement(seller, agent);
             const agreement = await investorEscrow.agreements(0)
             expect(agreement.buyer).to.equal(buyer);
-
+            expect(agreement.contractStatus).to.equal(0);
+            //------------------deposit-------------------------//
             const depositAmount = ethers.parseEther("10");
             await investorEscrow.connect(buyer).deposit(0, {value: depositAmount});
-            console.log("----------------",agreement);
-            
-            expect(agreement.amount).to.equal(depositAmount);
+            const agreementAfterDeposit = await investorEscrow.agreements(0);
+            expect(agreementAfterDeposit.amount).to.equal(depositAmount);
+            expect(agreementAfterDeposit.contractStatus).to.equal(1);
+            //------------------approve-------------------------//
+            await investorEscrow.connect(buyer).approve(0,100000);
+            const agreementAfterApprovedBuyer = await investorEscrow.agreements(0);
+            expect(agreementAfterApprovedBuyer.contractStatus).to.equal(1);
+            await investorEscrow.connect(seller).approve(0,100000);
+            const agreementAfterApprovedBoth= await investorEscrow.agreements(0);
+            expect(agreementAfterApprovedBoth.contractStatus).to.equal(2);
+            //------------------requestCancel-------------------------//
+            await investorEscrow.connect(buyer).requestCancel(0);
+            const agreementRequestCancel= await investorEscrow.agreements(0);
+            expect(agreementRequestCancel.buyerRequestedCancel).to.equal(true);
+            await investorEscrow.connect(buyer).createAgreement(seller, agent);
+            await investorEscrow.connect(buyer).deposit(1, {value: depositAmount});
+            await investorEscrow.connect(buyer).approve(1,0);
+            await investorEscrow.connect(seller).approve(1,0);
+            await expect(investorEscrow.connect(buyer).requestCancel(1)).to.be.revertedWith("Agreement have already Expired");
+            //-------------------requestComplete----------------------//
+            await investorEscrow.connect(buyer).requestComplete(0);
+            await investorEscrow.connect(seller).requestComplete(0);
+            const agreementComplete_buyer = await investorEscrow.agreements(0);
+            expect(agreementComplete_buyer.buyerRequestedComplete && agreementComplete_buyer.sellerRequestedComplete).to.equal(true);
+            //-------------------agentCancel--------------------------//
+            // await investorEscrow.connect(agent).agentCancel(0);
+            // const agreementAgentCancel = await investorEscrow.agreements(0);
+            // expect(agreementAgentCancel.amount).to.equal(0);
         })
+
     })
 })
