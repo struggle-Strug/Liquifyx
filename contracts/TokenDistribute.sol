@@ -56,12 +56,6 @@ contract TokenDistribute is Ownable{
         emit TokenWithdrawn(_investor, _agreementId, withdrawTokenAmount);
     }
 
-    ///@notice Function to update the paymentProcess contract address
-    ///@param _newAddress the new paymentProcessAddress
-    function updatePaymentProcessAddress(address _newAddress) external onlyOwner {
-        paymentProcess = IPaymentProcess(_newAddress);
-    }
-
     ///@notice Functon to update the token address
     ///@param _newAddress the newTokenAddress
     function updateTokenAddress(address _newAddress) external onlyOwner {

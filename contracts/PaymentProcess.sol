@@ -5,9 +5,10 @@ import "./interfaces/IInvestorEscrow.sol";
 import "./interfaces/ITokenDistribute.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 
-contract PaymentProcess is ReentrancyGuard,AccessControl {
+contract PaymentProcess is ReentrancyGuard,AccessControl,Pausable {
     // Reference to the MultiEscrow contract
     IInvestorEscrow public escrowContract;
     // Reference to the TokenDistribute contract
@@ -57,7 +58,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
 
         escrowContract.deposit{value: msg.value}(agreementId);
 
-        (,,,uint amount,,,,,,,,,) = escrowContract.agreementDetails(agreementId);
+        (,,,uint amount,,,,,,,,,,) = escrowContract.agreementDetails(agreementId);
         require(amount == msg.value, "Deposit failed");
 
         Investment memory newInvestment = Investment({
@@ -85,7 +86,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
         bool state = escrowContract.checkApproval(msg.sender, _agreementId);
         require(state == true, "Approval failed");
 
-        (,,,,,,,uint8 contractStatus,,,,,) = escrowContract.agreementDetails(_agreementId);
+        (,,,,,,,uint8 contractStatus,,,,,,) = escrowContract.agreementDetails(_agreementId);
         require(contractStatus == 3, "AgreementApproval failed");
         _updateInvestmentStatus(msg.sender, _agreementId);
     }
@@ -94,7 +95,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     ///@param _investor address of the investor
     ///@param _agreementId agreementID of the investment
     function _updateInvestmentStatus(address _investor, uint256 _agreementId) internal {
-                (,,,,bool fundsDisbursed,,,,,,,,) = escrowContract.agreementDetails(_agreementId);
+                (,,,,bool fundsDisbursed,,,,,,,,,) = escrowContract.agreementDetails(_agreementId);
                 if(fundsDisbursed){
                     investorInvestment[_investor][_agreementId].isCreated = true;
                     completedInvestments[_investor]++;
@@ -126,7 +127,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     ///@notice Function to withdraw investment
     ///@param _agreementId ID of the agreementID
     function withdraw(uint256 _agreementId) external nonReentrant {
-        (address buyer,,address agent,uint256 amount,,,uint8 contractStatus,,,,,,) = escrowContract.agreementDetails(_agreementId);
+        (address buyer,,address agent,uint256 amount,,,uint8 contractStatus,,,,,,,) = escrowContract.agreementDetails(_agreementId);
         require(msg.sender == agent, "Only Agent of the Agreement can cancel the Agreement");
         require(contractStatus == 5, "Approve doesn't canceled");
 
@@ -149,7 +150,7 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     function _getInvestorByAgreementId(uint256 _agreementId) internal view returns(address investor) {
         require(_agreementId != 0, "Invalid agreementID");
 
-        (investor,,,,,,,,,,,,) = escrowContract.agreementDetails(_agreementId);
+        (investor,,,,,,,,,,,,,) = escrowContract.agreementDetails(_agreementId);
         return investor;
     }
 
@@ -174,5 +175,15 @@ contract PaymentProcess is ReentrancyGuard,AccessControl {
     ///@param _tokenDistribute the address of the tokenDistribute
     function setTokenDistribute(address _tokenDistribute) public onlyRole(DEFAULT_ADMIN_ROLE){
         ITokenDistribute(_tokenDistribute);
+    }
+
+    ///@notice Function to pause the function
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _pause();
+    }
+
+    ///@notice Function to unpause the function
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 }

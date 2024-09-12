@@ -30,6 +30,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
         DisputeStatus disputeStatus;
         bool buyerRequestedCancel;
         bool buyerRequestedComplete;
+        bool sellerRequestedComplete;
         uint256 expirationTime;
         string disputeReason;
     }
@@ -107,6 +108,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
             contractStatus: ContractStatus.Created,
             buyerRequestedCancel: false,
             buyerRequestedComplete: false,
+            sellerRequestedComplete: false,
             expirationTime: 0,
             disputeStatus: DisputeStatus.NoDispute,
             disputeReason: ""
@@ -119,18 +121,11 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
     /// @notice Deposit funds into the escrow
     /// @param _agreementId The ID of the agreement
     function deposit(uint256 _agreementId) external payable nonReentrant onlyBuyer(_agreementId) {
-        EscrowAgreement memory agreement = agreements[_agreementId];
+        EscrowAgreement storage agreement = agreements[_agreementId];
         require(agreement.amount == 0, "Deposit already made");
         agreement.amount = msg.value;
         agreement.buyerStatus = BuyerStatus.Deposited;
         agreement.contractStatus = ContractStatus.Funded;
-
-        (bool success,) = agreement.agent.call{value: msg.value}("");
-        console.log("success",success);
-        console.log("amount",agreement.amount);
-        console.log("_agreementId",_agreementId);
-        console.log("Reached here!!!!!!!!!");
-        if(!success) revert();
 
         emit Deposited(_agreementId, msg.value);
     }
@@ -176,7 +171,11 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
             agreement.contractStatus == ContractStatus.Approved || agreement.contractStatus == ContractStatus.Funded,
             "Invalid contract status"
         );
-        agreement.buyerRequestedComplete = true;
+        if(msg.sender == agreement.buyer){
+            agreement.buyerRequestedComplete = true;
+        } else if(msg.sender == agreement.seller) {
+            agreement.sellerRequestedComplete = true;
+        }
     }
 
     //Function for the agent to cancel the agreement
@@ -188,8 +187,9 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
             agreement.contractStatus == ContractStatus.Approved || agreement.contractStatus == ContractStatus.Funded,
             "Invalid contract status"
         );
-        payable(agreement.buyer).transfer(agreement.amount);
+        console.log("agreement.amount",agreement.amount);
         (bool success,) = agreement.buyer.call{value: agreement.amount}("");
+        console.log("success",success);
         if(!success) revert();
 
         agreement.fundsDisbursed = true;
@@ -206,7 +206,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
     function agentComplete(uint256 _agreementId) external payable nonReentrant onlyAgent(_agreementId) notExpired(_agreementId) {
         EscrowAgreement storage agreement = agreements[_agreementId];
         require(msg.sender == agreement.agent, "Only agent can complete the agreement");
-        require(agreement.buyerRequestedComplete, "Buyer must request the complete");
+        require(agreement.buyerRequestedComplete && agreement.sellerRequestedComplete, "Buyer must request the complete");
         require(!agreement.fundsDisbursed, "The Fund already Disbursed");
         require(
             agreement.contractStatus == ContractStatus.Approved || agreement.contractStatus == ContractStatus.Funded,
@@ -225,7 +225,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
     ///@notice function to check the agreement expired
     ///@param _agreementId The ID of the agreement
     function checkAndHandleExpiration(uint256 _agreementId) external onlyAgent(_agreementId){
-        EscrowAgreement memory agreement = agreements[_agreementId];
+        EscrowAgreement storage agreement = agreements[_agreementId];
         require(block.timestamp > agreement.expirationTime, "Agreement haven't expired yet");
         require(
             agreement.contractStatus != ContractStatus.Completed && agreement.contractStatus != ContractStatus.Refunded,
@@ -289,6 +289,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
     /// @return contractStatus The status of the contract
     /// @return buyerRequestedCancel A boolean indicating if the buyer requested cancellation
     /// @return buyerRequestedComplete A boolean indicating if the buyer requested completion
+    /// @return sellerRequestedComplete A boolean indicating if the seller requested completion
     function agreementDetails(uint256 _agreementId) external view returns(
         address buyer,
         address seller,
@@ -300,6 +301,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
         ContractStatus contractStatus,
         bool buyerRequestedCancel,
         bool buyerRequestedComplete,
+        bool sellerRequestedComplete,
         uint expirationTime
     ) {
         EscrowAgreement storage agreement = agreements[_agreementId];
@@ -314,6 +316,7 @@ contract InvestorEscrow is ReentrancyGuard,Ownable {
             agreement.contractStatus,
             agreement.buyerRequestedCancel,
             agreement.buyerRequestedComplete,
+            agreement.sellerRequestedComplete,
             agreement.expirationTime
         );
     }
