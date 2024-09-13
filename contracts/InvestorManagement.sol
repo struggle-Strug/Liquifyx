@@ -112,6 +112,18 @@ contract InvestorManagement is Ownable,ReentrancyGuard{
         emit AmlStatusUpdated(_walletAddress, _status);
     }
 
+    ///@notice Function to get that investor is registered
+    ///@param _investor the address of the investor
+    function isRegistered(address _investor) external view returns(bool) {
+        return investorRegistered[_investor];
+    }
+
+    ///@notice Function to get the investor details
+    ///@param _investor The address of the investor
+    function getInvestorDetail(address _investor) external view returns(InvestorDetail memory) {
+        return investors[_investor];
+    }
+
     ///@notice Function to upadte the address of the agent
     ///@param _newAddress the new address of the agent
     function updateAgentAddress(address _newAddress) external onlyOwner{
