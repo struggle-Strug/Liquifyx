@@ -71,4 +71,10 @@ contract TokenLock is Ownable {
         Lock memory lock = locks[_investor][_time];
         return (lock.amount, lock.startTime, lock.duration);
     }
+
+    ///@notice Function to set the InvestorManagement Contract Address
+    ///@param _investorManagementAddress the address of the PaymentProcess
+    function setInvestorManagementAddress(address _investorManagementAddress) public onlyOwner{
+        IInvestorManagement(_investorManagementAddress);
+    }
 }
